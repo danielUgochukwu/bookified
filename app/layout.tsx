@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 
 import Navbar from "@/components/Navbar";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const ibmPlexSerif = IBM_Plex_Serif({
   variable: "--font-ibm-plex-serif",
@@ -55,6 +56,7 @@ export default function RootLayout({
         <body className="flex min-h-full flex-col">
           <Navbar />
           {children}
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
