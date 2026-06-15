@@ -101,7 +101,9 @@ export const ACCEPTED_IMAGE_TYPES = [
 export const ASSISTANT_ID = process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "";
 
 if (!ASSISTANT_ID) {
-  console.error("NEXT_PUBLIC_ASSISTANT_ID environment variable is not set");
+  console.warn(
+    "NEXT_PUBLIC_ASSISTANT_ID is not set - voice assistant features will be unavailable"
+  );
 }
 
 // 11Labs Voice IDs - Optimized for conversational AI

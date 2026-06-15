@@ -1,99 +1,154 @@
-"use server"
+"use server";
 
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/database/mongoose";
 import { CreateBook, TextSegment } from "@/types";
 import { generateSlug, serializeData } from "../utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 
+export const getAllBooks = async () => {
+  try {
+    await connectToDatabase();
+
+    const books = await Book.find().sort({ createdAt: -1 }).lean();
+
+    return {
+      success: true,
+      data: serializeData(books),
+    };
+  } catch (error) {
+    console.error("Error connecting to database", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch books",
+    };
+  }
+};
+
 export const checkBookExists = async (title: string) => {
-    try {
-        await connectToDatabase()
+  try {
+    await connectToDatabase();
 
-        const slug = generateSlug(title);
+    const slug = generateSlug(title);
 
-        const existingBook = await Book.findOne({ slug }).lean();
+    const existingBook = await Book.findOne({ slug }).lean();
 
-        if (existingBook) {
-            return {
-                exists: true,
-                book: serializeData(existingBook)
-            }
-        }
-
-        return {
-            exists: false,
-        }
-    } catch (error) {
-        console.error("Error checking if book exists:", error);
-        throw error;
+    if (existingBook) {
+      return {
+        exists: true,
+        book: serializeData(existingBook),
+      };
     }
-}
+
+    return {
+      exists: false,
+    };
+  } catch (error) {
+    console.error("Error checking if book exists:", error);
+    throw error;
+  }
+};
 
 export const createBook = async (data: CreateBook) => {
-    try {
-        await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-        const slug = generateSlug(data.title);
-        
-        const existingBook = await Book.findOne({ slug }).lean();
-        
-        if (existingBook) {
-            return {
-              success: true,
-              data: serializeData(existingBook),
-              alreadyExists: true,
-            };
-        }
+    const slug = generateSlug(data.title);
 
-        // Todo: Check limits before creating a new book
+    const existingBook = await Book.findOne({ slug }).lean();
 
-        const book = await Book.create({ ...data, slug, totalSegments: 0 });
-
-        return {
-            success: true,
-            data: serializeData(book),
-        }
-    } catch (error) {
-        console.error("Error creating book:", error);
-        
-        return {
-            success: false,
-           error: error
-        }
+    if (existingBook) {
+      return {
+        success: true,
+        data: serializeData(existingBook),
+        alreadyExists: true,
+      };
     }
-}
 
-export const saveBookSegments = async (bookId: string, clerkId: string, segments: TextSegment[]) => {
+    // Todo: Check limits before creating a new book
+
+    const book = await Book.create({ ...data, slug, totalSegments: 0 });
+
+    return {
+      success: true,
+      data: serializeData(book),
+    };
+  } catch (error) {
+    console.error("Error creating book:", error);
+
+    return {
+      success: false,
+      error: error,
+    };
+  }
+};
+
+export const saveBookSegments = async (
+  bookId: string,
+  clerkId: string,
+  segments: TextSegment[]
+) => {
+  try {
+    await connectToDatabase();
+
+    console.log("Saving book segments...");
+
+    const segmentsToInsert = segments.map(
+      ({ text, segmentIndex, pageNumber, wordCount }) => ({
+        clerkId,
+        bookId,
+        content: text,
+        segmentIndex,
+        pageNumber,
+        wordCount,
+      })
+    );
+
+    const session = await mongoose.startSession();
+
     try {
-        await connectToDatabase();
+      await session.withTransaction(async () => {
+        await BookSegment.insertMany(segmentsToInsert, { session });
+        await Book.findByIdAndUpdate(
+          bookId,
+          { totalSegments: segments.length },
+          { session }
+        );
+      });
+    } catch (e) {
+      console.error("Error saving book segments", e);
 
-        console.log("Saving book segments ...");
-
-        const segmentsToInsert = segments.map(({ text, segmentIndex, pageNumber, wordCount }) => ({
-            clerkId, bookId, content: text, segmentIndex, pageNumber, wordCount
-        }));
-
-        await BookSegment.insertMany(segmentsToInsert);
-
-        await Book.findByIdAndUpdate(bookId, { totalSegments: segments.length })
-
-          console.log("Book segments saved successfully.");
-        
-        return {
-            success: true,
-            data: { segmentsCreated: segments.length }
-        }
-        
-    } catch (error) {
-        console.error("Error saving book segments:", error);
-
+      try {
         await BookSegment.deleteMany({ bookId });
         await Book.findByIdAndDelete(bookId);
-        console.log("Deleted book segments due to failure to save segments.");
-        return {
-            success: false,
-            error: error
-        }
+      } catch (cleanupError) {
+        console.error(
+          "Failed to clean up database after segment save failure",
+          cleanupError
+        );
+      }
+
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : "Failed to save book segments",
+      };
+    } finally {
+      await session.endSession();
     }
-}
+
+    console.log("Book segments saved successfully.");
+
+    return {
+      success: true,
+      data: { segmentsCreated: segments.length },
+    };
+  } catch (e) {
+    console.error("Error saving book segments", e);
+
+    return {
+      success: false,
+      error: e,
+    };
+  }
+};
