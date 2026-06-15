@@ -1,5 +1,6 @@
 "use server"
 
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/database/mongoose";
 import { CreateBook, TextSegment } from "@/types";
 import { generateSlug, serializeData } from "../utils";
@@ -103,9 +104,20 @@ export const saveBookSegments = async (
       })
     );
 
-    await BookSegment.insertMany(segmentsToInsert);
+    const session = await mongoose.startSession();
 
-    await Book.findByIdAndUpdate(bookId, { totalSegments: segments.length });
+    try {
+      await session.withTransaction(async () => {
+        await BookSegment.insertMany(segmentsToInsert, { session });
+        await Book.findByIdAndUpdate(
+          bookId,
+          { totalSegments: segments.length },
+          { session }
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
 
     console.log("Book segments saved successfully.");
 

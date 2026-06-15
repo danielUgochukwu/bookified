@@ -1,5 +1,5 @@
 import Hero from "@/components/Hero";
-import { sampleBooks } from "@/lib/constants/constants";
+
 import BookCard from "@/components/BookCard";
 import { getAllBooks } from "@/lib/actions/book.actions";
 
