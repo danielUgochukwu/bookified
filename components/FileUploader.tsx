@@ -59,7 +59,6 @@ const FileUploader = <T extends FieldValues>({
         onClick={() => !disabled && inputRef.current?.click()}
         disabled={disabled}
       >
-      </button>
         <input
           type="file"
           accept={acceptTypes.join(",")}
@@ -91,7 +90,7 @@ const FileUploader = <T extends FieldValues>({
             <p className="upload-dropzone-hint">{hint}</p>
           </>
         )}
-      </div>
+      </button>
       <FieldError errors={error ? [error] : []} />
     </Field>
   );

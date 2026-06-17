@@ -127,12 +127,6 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
     />
   )
 }
-        className
-      )}
-      {...props}
-    />
-  )
-}
 
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
