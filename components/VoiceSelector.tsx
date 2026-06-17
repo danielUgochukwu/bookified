@@ -41,7 +41,7 @@ const VoiceSelector = ({
                   <RadioGroupItem
                     value={voiceId}
                     id={voiceId}
-                    className="sr-only"
+                    className="absolute w-px h-px overflow-hidden"
                   />
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ const VoiceSelector = ({
                   <RadioGroupItem
                     value={voiceId}
                     id={voiceId}
-                    className="sr-only"
+                    className="absolute w-px h-px overflow-hidden"
                   />
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
