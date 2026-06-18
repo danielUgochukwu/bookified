@@ -1,4 +1,4 @@
-import { ASSISTANT_ID, DEFAULT_VOICE } from "@/constants";
+import { ASSISTANT_ID } from "@/constants";
 import {
   endVoiceSession,
   startVoiceSession,
@@ -6,8 +6,7 @@ import {
 import { IBook, Messages } from "@/types";
 import { useAuth } from "@clerk/nextjs";
 import Vapi from "@vapi-ai/web";
-import { useEffect, useRef, useState } from "react";
-import { finalize } from "zod/v4/core";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type CallStatus =
   | "idle"
@@ -57,6 +56,19 @@ function isTranscriptMessage(msg: unknown): msg is TranscriptMessage {
   );
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+  return "An error occurred during the call";
+}
+
 export const useVapi = (book: IBook) => {
   const { userId } = useAuth();
 
@@ -72,23 +84,14 @@ export const useVapi = (book: IBook) => {
   const isStoppingRef = useRef<boolean>(false);
 
   const durationRef = useLatestRef(duration);
-  const voice = book.persona || DEFAULT_VOICE;
-
   const isActive =
     status === "listening" ||
     status === "thinking" ||
     status === "speaking" ||
     status === "starting";
 
-  useEffect(() => {
-    let vapiInstance: InstanceType<typeof Vapi>;
-    try {
-      vapiInstance = getVapi();
-    } catch {
-      return;
-    }
-
-    const finalizeSession = async () => {
+  const finalizeSession = useCallback(
+    async () => {
       const sessionId = sessionIdRef.current;
       sessionIdRef.current = null;
       if (!sessionId) return;
@@ -97,7 +100,17 @@ export const useVapi = (book: IBook) => {
       } catch (error) {
         console.error("Error ending session:", error);
       }
-    };
+    },
+    [durationRef]
+  );
+
+  useEffect(() => {
+    let vapiInstance: InstanceType<typeof Vapi>;
+    try {
+      vapiInstance = getVapi();
+    } catch {
+      return;
+    }
 
     const handleCallStart = () => {
       setStatus("listening");
@@ -154,7 +167,7 @@ export const useVapi = (book: IBook) => {
     // an unhandled exception — which is the root cause of "Unhandled error (undefined)"
     const handleError = async (error: unknown) => {
       console.error("Vapi error:", error);
-      setLimitError(error?.message || "An error occurred during the call");
+      setLimitError(getErrorMessage(error));
       setStatus("idle");
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -180,7 +193,7 @@ export const useVapi = (book: IBook) => {
       vapiInstance.removeListener("message", handleMessage);
       vapiInstance.removeListener("error", handleError);
     };
-  }, []);
+  }, [finalizeSession]);
 
   const start = async () => {
     if (!userId) return setLimitError("Please login to start a conversation");
