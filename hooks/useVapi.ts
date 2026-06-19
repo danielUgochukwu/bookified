@@ -6,6 +6,7 @@ import {
 import { IBook, Messages } from "@/types";
 import { useAuth } from "@clerk/nextjs";
 import Vapi from "@vapi-ai/web";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type CallStatus =
@@ -56,27 +57,48 @@ function isTranscriptMessage(msg: unknown): msg is TranscriptMessage {
   );
 }
 
-function getErrorMessage(error: unknown) {
+function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
+  if (typeof error === "object" && error !== null) {
+    const e = error as Record<string, unknown>;
+    // Vapi errors: { type, stage, error: { message, errorMsg, ... }, timestamp }
+    if (typeof e.error === "object" && e.error !== null) {
+      const nested = e.error as Record<string, unknown>;
+      // errorMsg is the plain-text field; message is sometimes a re-serialised JSON string
+      if (typeof nested.errorMsg === "string") return mapVapiError(nested.errorMsg);
+      if (typeof nested.message === "string") {
+        // message may itself be a JSON string — try to unwrap it
+        try {
+          const parsed = JSON.parse(nested.message) as Record<string, unknown>;
+          if (typeof parsed.errorMsg === "string") return mapVapiError(parsed.errorMsg);
+        } catch {
+          // not JSON — use as-is
+        }
+        return nested.message;
+      }
+    }
+    if (typeof e.error === "string") return e.error;
+    if (typeof e.message === "string") return e.message;
   }
   return "An error occurred during the call";
 }
 
+function mapVapiError(errorMsg: string): string {
+  if (errorMsg.includes("room lookup timed out"))
+    return "Could not connect to the voice service. Please try again in a moment.";
+  return errorMsg;
+}
+
 export const useVapi = (book: IBook) => {
   const { userId } = useAuth();
+  const router = useRouter();
 
   const [status, setStatus] = useState<CallStatus>("idle");
   const [messages, setMessages] = useState<Messages[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [currentUserMessage, setCurrentUserMessage] = useState("");
   const [duration, setDuration] = useState(0);
+  const [maxDurationMinutes, setMaxDurationMinutes] = useState(15);
   const [limitError, setLimitError] = useState<string | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -84,11 +106,21 @@ export const useVapi = (book: IBook) => {
   const isStoppingRef = useRef<boolean>(false);
 
   const durationRef = useLatestRef(duration);
+  const maxDurationRef = useLatestRef(maxDurationMinutes);
   const isActive =
     status === "listening" ||
     status === "thinking" ||
     status === "speaking" ||
     status === "starting";
+
+  useEffect(() => {
+    if (!isActive) return;
+    const limitSeconds = maxDurationRef.current * 60;
+    if (duration >= limitSeconds) {
+      getVapi().stop();
+      router.push("/");
+    }
+  }, [duration, isActive, maxDurationRef, router]);
 
   const finalizeSession = useCallback(
     async () => {
@@ -166,7 +198,7 @@ export const useVapi = (book: IBook) => {
     // Fix: without this handler, Vapi's EventEmitter throws any error event as
     // an unhandled exception — which is the root cause of "Unhandled error (undefined)"
     const handleError = async (error: unknown) => {
-      console.error("Vapi error:", error);
+      console.error("Vapi error:", JSON.stringify(error));
       setLimitError(getErrorMessage(error));
       setStatus("idle");
       if (timerRef.current) {
@@ -217,6 +249,9 @@ export const useVapi = (book: IBook) => {
       }
 
       sessionIdRef.current = result.sessionId || null;
+      if (result.maxDurationMinutes) {
+        setMaxDurationMinutes(result.maxDurationMinutes);
+      }
 
       const firstMessage = `Hey, good to meet you. Quick question, before we dive in: have you actually read ${book.title} yet? Or are we starting fresh?`;
 
@@ -252,6 +287,7 @@ export const useVapi = (book: IBook) => {
     currentMessage,
     currentUserMessage,
     duration,
+    maxDurationMinutes,
     limitError,
     start,
     stop,

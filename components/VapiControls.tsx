@@ -16,6 +16,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
     currentMessage,
     currentUserMessage,
     duration,
+    maxDurationMinutes,
     limitError,
     start,
     stop,
@@ -26,6 +27,12 @@ const VapiControls = ({ book }: { book: IBook }) => {
     `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
   const statusLabel =
     status === "idle" ? "Ready" : status[0].toUpperCase() + status.slice(1);
+  const statusDotClass =
+    status === "idle"
+      ? "vapi-status-dot-ready"
+      : status === "connecting" || status === "starting"
+        ? "vapi-status-dot-connecting"
+        : `vapi-status-dot-${status}`;
 
   return (
     <>
@@ -65,7 +72,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
                 aria-label="Toggle microphone"
               >
                 {isActive ? (
-                  <Mic className="w-6 h-6 text-white" />
+                  <Mic className="w-6 h-6 text-[#212a3b]" />
                 ) : (
                   <MicOff className="w-6 h-6 text-[#212a3b]" />
                 )}
@@ -81,7 +88,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
           </div>
           <div className="flex flex-wrap gap-2">
             <div className="vapi-status-indicator">
-              <span className="vapi-status-dot vapi-status-dot-ready" />
+              <span className={`vapi-status-dot ${statusDotClass}`} />
               <span className="vapi-status-text">{statusLabel}</span>
             </div>
             <div className="vapi-status-indicator">
@@ -91,7 +98,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
             </div>
             <div className="vapi-status-indicator">
               <span className="vapi-status-text">
-                {formatDuration(duration)}/15:00
+                {formatDuration(duration)}/{formatDuration(maxDurationMinutes * 60)}
               </span>
             </div>
           </div>

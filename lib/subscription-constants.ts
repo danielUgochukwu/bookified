@@ -1,9 +1,18 @@
-export const getCurrentBillingPeriodStart = (): Date => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+export type PlanType = "free" | "standard" | "pro";
+
+export interface PlanLimits {
+  maxBooks: number;
+  maxSessionsPerMonth: number;
+  maxDurationMinutes: number;
+}
+
+export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
+  free:     { maxBooks: 1,   maxSessionsPerMonth: 5,        maxDurationMinutes: 5  },
+  standard: { maxBooks: 10,  maxSessionsPerMonth: 100,       maxDurationMinutes: 15 },
+  pro:      { maxBooks: 100, maxSessionsPerMonth: Infinity,  maxDurationMinutes: 60 },
 };
 
-export const PLAN_LIMITS: Record<string, { maxBooks: number }> = {
-  free: { maxBooks: 5 },
-  pro: { maxBooks: 100 },
+export const getCurrentBillingPeriodStart = (): Date => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 };
