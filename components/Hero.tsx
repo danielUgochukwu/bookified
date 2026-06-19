@@ -22,7 +22,7 @@ const Hero = () => {
         {/* Center (Desktop) */}
         <div className="library-hero-illustration-desktop">
           <Image
-            src="/assets/hero-illustration.png"
+            src="/assets/gemini-hero.png"
             alt="Vintage books and a globe"
             width={400}
             height={300}

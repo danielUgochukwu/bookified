@@ -4,12 +4,19 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Show, SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
+import {
+  Show,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  useUser,
+} from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { label: "Library", href: "/" },
   { label: "Add New", href: "/books/new" },
+  { label: "Pricing", href: "/subscriptions" },
 ];
 
 const Navbar = () => {
@@ -22,11 +29,11 @@ const Navbar = () => {
         <Link href={`/`} className="flex gap-0.5 items-center">
           <Image
             src={`/assets/logo.png`}
-            alt="Bookified"
+            alt="Bookara"
             width={42}
             height={26}
           />
-          <span className="logo-text">Bookified</span>
+          <span className="logo-text">Bookara</span>
         </Link>
 
         <nav className="w-fit flex gap-7.5 items-center">

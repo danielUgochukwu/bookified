@@ -1,13 +1,10 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import type { PlanType } from "./subscription-constants";
 
-export async function getUserPlan(): Promise<string> {
-  const { userId } = await auth();
+export async function getUserPlan(): Promise<PlanType> {
+  const { userId, has } = await auth();
   if (!userId) return "free";
-
-  const client = await clerkClient();
-  const user = await client.users.getUser(userId);
-  const plan = user.publicMetadata?.plan;
-
-  if (typeof plan === "string" && plan) return plan;
+  if (has({ plan: "pro" })) return "pro";
+  if (has({ plan: "standard" })) return "standard";
   return "free";
 }
