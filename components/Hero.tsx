@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
 
 const Hero = () => {
   return (
@@ -44,7 +43,7 @@ const Hero = () => {
         </div>
 
         {/* Right Side */}
-        <ul className="library-steps-card flex flex-col gap-6 py-8 px-6 lg:px-8 w-full lg:w-fit shrink-0 shadow-sm">
+        <ul className="library-steps-card flex flex-col gap-4 lg:gap-6 py-5 px-5 lg:py-8 lg:px-8 w-full lg:w-fit shrink-0 shadow-sm">
           {[
             { title: "Upload PDF", description: "Add your book file" },
             { title: "AI Processing", description: "We analyze the content" },

@@ -17,7 +17,7 @@ const Page = async ({
     <main className="wrapper container">
       <Hero />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
         <h2 className="text-xl font-semibold text-(--text-primary)">
           Recent Books
         </h2>
